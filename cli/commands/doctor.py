@@ -141,17 +141,29 @@ def doctor_command() -> None:
     # Print environment check
     ok, no = "[green]✓[/green]", "[red]✗[/red]"
     workspace = cfg.paths.workspace_dir
-    cache_dir = cfg.paths.cache_dir
-    tmp_dir = cfg.paths.tmp_dir
+    cache_dir = getattr(cfg.paths, "cache_dir", None)
+    tmp_dir = getattr(cfg.paths, "tmp_dir", None)
     console.print("[bold]Environment Check[/bold]")
     console.print(
         f"  Workspace:     {workspace} {ok if workspace and workspace.exists() else no}"
     )
+    if cache_dir is not None:
+        console.print(
+            f"  Cache:         {cache_dir} {ok if cache_dir.exists() else no}"
+        )
+    else:
+        console.print("  Cache:         [dim]not configured[/dim]")
+    if tmp_dir is not None:
+        console.print(
+            f"  Tmp:           {tmp_dir} {ok if tmp_dir.exists() else no}"
+        )
+    else:
+        console.print("  Tmp:           [dim]not configured[/dim]")
     console.print(
-        f"  Cache:         {cache_dir} {ok if cache_dir and cache_dir.exists() else no}"
+        f"  Logs:          {cfg.paths.logs_dir} {ok if cfg.paths.logs_dir and cfg.paths.logs_dir.exists() else no}"
     )
     console.print(
-        f"  Tmp:           {tmp_dir} {ok if tmp_dir and tmp_dir.exists() else no}"
+        f"  Context:       {cfg.paths.context_dir} {ok if cfg.paths.context_dir and cfg.paths.context_dir.exists() else no}"
     )
     console.print()
 
