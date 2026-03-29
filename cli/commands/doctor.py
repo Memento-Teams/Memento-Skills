@@ -141,17 +141,21 @@ def doctor_command() -> None:
     # Print environment check
     ok, no = "[green]✓[/green]", "[red]✗[/red]"
     workspace = cfg.paths.workspace_dir
-    cache_dir = cfg.paths.cache_dir
-    tmp_dir = cfg.paths.tmp_dir
+    skills_dir = cfg.paths.skills_dir
+    db_dir = cfg.paths.db_dir
+    logs_dir = cfg.paths.logs_dir
     console.print("[bold]Environment Check[/bold]")
     console.print(
         f"  Workspace:     {workspace} {ok if workspace and workspace.exists() else no}"
     )
     console.print(
-        f"  Cache:         {cache_dir} {ok if cache_dir and cache_dir.exists() else no}"
+        f"  Skills:        {skills_dir} {ok if skills_dir and skills_dir.exists() else no}"
     )
     console.print(
-        f"  Tmp:           {tmp_dir} {ok if tmp_dir and tmp_dir.exists() else no}"
+        f"  Database:      {db_dir} {ok if db_dir and db_dir.exists() else no}"
+    )
+    console.print(
+        f"  Logs:          {logs_dir} {ok if logs_dir and logs_dir.exists() else no}"
     )
     console.print()
 
