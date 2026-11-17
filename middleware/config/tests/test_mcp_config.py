@@ -180,7 +180,7 @@ class TestMcpServerCRUD:
                 },
             )
 
-        assert len(manager.get_servers()) == 7  # 2 模板 + 5 新增
+        assert len(manager.get_servers()) == len(manager.load_template()["mcp"]) + 5
 
     def test_server_roundtrip(self, temp_config_dir):
         """server 配置从创建到重新加载保持一致"""
@@ -422,7 +422,6 @@ class TestMcpAtomicWrite:
             })
 
         servers = manager.get_servers()
-        # github, filesystem + 10 个新 server = 12
-        assert len(servers) == 12
+        assert len(servers) == len(manager.load_template()["mcp"]) + 10
         for i in range(10):
             assert f"concurrent_{i}" in servers

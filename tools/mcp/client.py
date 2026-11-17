@@ -36,6 +36,8 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
@@ -182,12 +184,22 @@ class MCPToolLoader:
                 await self._register_tools(session, name)
 
     async def _load_http_server(self, name: str, config: dict[str, Any]) -> None:
-        """通过 streamable_http 加载远程 MCP server。
+        """Discover HTTP tools; open a fresh session for each later invocation.
 
-        streamable_http_client 签名：
-        streamable_http_client(url, *, http_client=None, terminate_on_close=True)
-        → http_client 支持传入预配置好的 httpx.AsyncClient，可在其中设置 headers/timeout/auth
+        Registered handlers outlive discovery. Keeping each connection within
+        its call also lets registry cancellation close the session normally.
         """
+        async def call_tool(tool_name: str, arguments: dict[str, Any]) -> Any:
+            async with self._http_session(config) as session:
+                return await session.call_tool(tool_name, arguments)
+
+        async with self._http_session(config) as session:
+            await self._register_tools(session, name, call_tool=call_tool)
+
+    @staticmethod
+    @asynccontextmanager
+    async def _http_session(config: dict[str, Any]) -> AsyncIterator[Any]:
+        """Own the HTTP client, transport and initialized MCP session together."""
         from mcp.client.session import ClientSession
         from mcp.client.streamable_http import streamable_http_client
 
@@ -199,21 +211,27 @@ class MCPToolLoader:
                 url,
                 http_client=http_client,
                 terminate_on_close=True,
-            ) as (read, write):
+            ) as (read, write, _get_session_id):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
-                    await self._register_tools(session, name)
+                    yield session
 
-    async def _register_tools(self, session: Any, server_name: str) -> None:
+    async def _register_tools(
+        self,
+        session: Any,
+        server_name: str,
+        *,
+        call_tool: Callable[[str, dict[str, Any]], Awaitable[Any]] | None = None,
+    ) -> None:
         """列出 server 支持的工具并注册到 ToolRegistry。"""
         list_result = await session.list_tools()
 
         for mcp_tool in list_result.tools:
             tool_name = f"{server_name}_{mcp_tool.name}"
 
-            async def make_caller(mcp_tool=mcp_tool, session=session):
+            async def make_caller(mcp_tool=mcp_tool, invoke=call_tool or session.call_tool):
                 async def caller(**kwargs: Any) -> str:
-                    result = await session.call_tool(mcp_tool.name, kwargs)
+                    result = await invoke(mcp_tool.name, kwargs)
                     texts = []
                     for content in result.content:
                         if content.type == "text":
@@ -223,7 +241,8 @@ class MCPToolLoader:
                             texts.append(f"[image: {data[:100]}...]")
                         elif content.type == "resource":
                             texts.append(f"[resource: {getattr(content, 'uri', '')}]")
-                    return "\n".join(texts) if texts else "(no output)"
+                    output = "\n".join(texts) if texts else "(no output)"
+                    return f"ERR: {output}" if result.isError else output
 
                 return caller
 
@@ -257,7 +276,8 @@ class MCPToolLoader:
                 tags=["mcp", f"server:{server_name}"],
             )
 
-        self._sessions[server_name] = session
+        if call_tool is None:
+            self._sessions[server_name] = session
 
     async def close(self) -> None:
         """关闭所有 MCP server 连接。"""

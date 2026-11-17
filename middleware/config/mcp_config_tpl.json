@@ -1,6 +1,15 @@
 {
   "enabled": true,
   "mcp": {
+    "parallel": {
+      "transport": "streamable_http",
+      "url": "https://mcp.parallel.ai/mcp",
+      "headers": {
+        "User-Agent": "Memento-S/0.4.0"
+      },
+      "timeout": 20000,
+      "enabled": false
+    },
     "github": {
       "transport": "stdio",
       "command": "npx",

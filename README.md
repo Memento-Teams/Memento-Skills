@@ -549,6 +549,10 @@ been reviewed.
 | `skill-creator` | New skill creation, optimisation, and evaluation |
 | `uv-pip-install` | Python dependency installation via `uv` |
 
+For optional public web research through the existing MCP tool registry, see
+[Parallel MCP configuration](docs/parallel_mcp.md). It can be enabled without a
+web API key; the built-in Tavily search remains available with its existing setup.
+
 ## Verification and Contributions
 
 GitHub Actions runs a deterministic smoke suite on Linux, macOS, and Windows,
